@@ -11,7 +11,6 @@ import com.github.vkay94.dtpv.youtube.YouTubeOverlay
 import kotlinx.android.synthetic.main.activity_video.*
 import kotlinx.android.synthetic.main.exo_playback_control_view_yt.*
 
-
 class VideoActivity : BaseVideoActivity() {
 
     private var currentVideoId = 0
