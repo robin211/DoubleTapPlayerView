@@ -15,9 +15,9 @@ import com.github.vkay94.dtpv.R
  * View class
  *
  * Draws a arc shape and provides a circle scaling animation.
- * Used by YouTubeOverlay.
+ * Used by [YouTubeOverlay][com.github.vkay94.dtpv.youtube.YouTubeOverlay].
  */
-class CircleClipTapView(context: Context?, attrs: AttributeSet) :
+internal class CircleClipTapView(context: Context?, attrs: AttributeSet) :
     View(context, attrs) {
 
     private var backgroundPaint = Paint()
@@ -33,8 +33,8 @@ class CircleClipTapView(context: Context?, attrs: AttributeSet) :
 
     // Circle
 
-    var cX = 0f
-    var cY = 0f
+    private var cX = 0f
+    private var cY = 0f
 
     private var currentRadius = 0f
     private var minRadius: Int = 0
@@ -98,7 +98,11 @@ class CircleClipTapView(context: Context?, attrs: AttributeSet) :
             circlePaint.color = value
         }
 
-    var animationDuration: Long = 650L // default
+    var animationDuration: Long
+        get() = valueAnimator?.duration ?: 650
+        set(value) {
+            getCircleAnimator().duration = value
+        }
 
     /*
        Methods
@@ -155,7 +159,7 @@ class CircleClipTapView(context: Context?, attrs: AttributeSet) :
         Animation
      */
 
-    fun getCircleAnimator(): ValueAnimator {
+    private fun getCircleAnimator(): ValueAnimator {
         if (valueAnimator == null) {
             valueAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = animationDuration
@@ -183,10 +187,14 @@ class CircleClipTapView(context: Context?, attrs: AttributeSet) :
 
     fun resetAnimation(body: () -> Unit) {
         forceReset = true
-        valueAnimator?.end()
+        getCircleAnimator().end()
         body()
         forceReset = false
         getCircleAnimator().start()
+    }
+
+    fun endAnimation() {
+        getCircleAnimator().end()
     }
 
     /*
