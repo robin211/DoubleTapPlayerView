@@ -8,16 +8,14 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.github.vkay94.dtpv.DoubleTapPlayerView
-import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.source.ExtractorMediaSource
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
-import com.google.android.exoplayer2.trackselection.TrackSelection
-import com.google.android.exoplayer2.upstream.BandwidthMeter
+import com.google.android.exoplayer2.DefaultLoadControl
+import com.google.android.exoplayer2.LoadControl
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
-import kotlinx.android.synthetic.main.activity_video.*
 
 
 @SuppressLint("Registered")
@@ -28,21 +26,16 @@ open class BaseVideoActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.window.setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-        )
         supportActionBar?.hide()
     }
 
     fun buildMediaSource(mUri: Uri) {
-        val bandwidthMeter = DefaultBandwidthMeter()
         val dataSourceFactory = DefaultDataSourceFactory(
             this@BaseVideoActivity,
             Util.getUserAgent(this@BaseVideoActivity, resources.getString(R.string.app_name)),
-            bandwidthMeter
+            DefaultBandwidthMeter.Builder(this@BaseVideoActivity).build()
         )
-        val videoSource = ExtractorMediaSource.Factory(dataSourceFactory)
+        val videoSource = ProgressiveMediaSource.Factory(dataSourceFactory, Mp4ExtractorFactory())
             .createMediaSource(mUri)
 
         player?.prepare(videoSource)
@@ -53,27 +46,18 @@ open class BaseVideoActivity : AppCompatActivity() {
         if (player == null) {
             val loadControl: LoadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    VideoPlayerConfig.MIN_BUFFER_DURATION,
-                    VideoPlayerConfig.MAX_BUFFER_DURATION,
-                    VideoPlayerConfig.MIN_PLAYBACK_START_BUFFER,
-                    VideoPlayerConfig.MIN_PLAYBACK_RESUME_BUFFER
+                    MIN_BUFFER_DURATION,
+                    MAX_BUFFER_DURATION,
+                    MIN_PLAYBACK_START_BUFFER,
+                    MIN_PLAYBACK_RESUME_BUFFER
                 )
                 .createDefaultLoadControl()
 
-            val bandwidthMeter: BandwidthMeter = DefaultBandwidthMeter.Builder(this).build()
-            val defaultRenderersFactory = DefaultRenderersFactory(this)
+            player = SimpleExoPlayer.Builder(this)
+                .setLoadControl(loadControl)
+                .build()
 
-            val videoTrackSelectionFactory: TrackSelection.Factory =
-                AdaptiveTrackSelection.Factory(bandwidthMeter)
-            val trackSelector = DefaultTrackSelector(videoTrackSelectionFactory)
-
-            player = ExoPlayerFactory.newSimpleInstance(
-                this,
-                defaultRenderersFactory,
-                trackSelector,
-                loadControl
-            )
-            playerView.player = player
+            videoPlayer?.player = player
         }
     }
 
@@ -119,7 +103,23 @@ open class BaseVideoActivity : AppCompatActivity() {
         }
     }
 
+    fun setFullscreen(fullscreen: Boolean) {
+        if (fullscreen) {
+            this.window.setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            )
+        } else {
+            this.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        }
+    }
+
     companion object {
+        const val MIN_BUFFER_DURATION = 15000
+        const val MAX_BUFFER_DURATION = 60000
+        const val MIN_PLAYBACK_START_BUFFER = 2500
+        const val MIN_PLAYBACK_RESUME_BUFFER = 5000
+
         fun <T: BaseVideoActivity> newIntent(context: Context, activity: Class<T>): Intent =
             Intent(context, activity)
     }
