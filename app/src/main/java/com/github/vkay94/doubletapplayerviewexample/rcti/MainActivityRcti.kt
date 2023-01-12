@@ -4,11 +4,13 @@ import android.content.pm.ActivityInfo
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
+import android.view.*
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.GestureDetectorCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.github.vkay94.doubletapplayerviewexample.DataAndUtils
@@ -21,6 +23,8 @@ import com.github.vkay94.doubletapplayerviewexample.fragments.ShapeFragment
 import com.github.vkay94.doubletapplayerviewexample.openInBrowser
 import com.github.vkay94.dtpv.PlayerDoubleTapListener
 import com.github.vkay94.dtpv.rcti.DoubleTapOverlay
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import kotlinx.android.synthetic.main.activity_main_rcti.*
 import kotlinx.android.synthetic.main.exo_playback_control_view_yt.*
 
@@ -30,6 +34,7 @@ class MainActivityRcti : BaseVideoActivityRcti() {
     private var currentVideoId = -1
     private var lastClickTime: Long = 0
     val DOUBLE_CLICK_TIME_DELTA: Long = 650
+    private var portraitParams : ViewGroup.LayoutParams? = null
 
     private lateinit var viewModel: PageViewModel
 
@@ -41,6 +46,7 @@ class MainActivityRcti : BaseVideoActivityRcti() {
         setSupportActionBar(toolbar)
 
         this.videoPlayer = previewPlayerView
+        videoPlayer!!.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         initDoubleTapPlayerView()
         initViewModel()
         startNextVideo()
@@ -56,29 +62,69 @@ class MainActivityRcti : BaseVideoActivityRcti() {
             toggleFullscreen()
         }
 
+        exo_play.setOnClickListener {
+            player?.play()
+        }
+
+        exo_pause.setOnClickListener {
+            player?.pause()
+        }
+
         listener = ytOverlay.playerDoubleTapListener
 
-        left.setOnClickListener {
-            Log.d("TAG", "left: ")
-            listener?.onDoubleTapStarted(it.x,it.y)
+        val gestureListener = DoubleTapGestureListener(this.previewPlayerView)
+        val gestureDetector = GestureDetectorCompat(this, gestureListener)
 
+
+        val scaleGestureDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    if (isVideoFullscreen){
+                        if (detector.scaleFactor > 1){
+                            previewPlayerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            player?.videoScalingMode=
+                                C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                            Log.d("SCALE", "PAN")
+                        }else{
+                            previewPlayerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            player?.videoScalingMode=
+                                C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+                            Log.d("SCALE", "PINCH")
+                        }
+                    }
+                    return super.onScale(detector)
+                }
+            }
+        )
+
+        mid.setOnTouchListener{
+                _, event ->
+            gestureDetector.onTouchEvent(event)
+            scaleGestureDetector.onTouchEvent(event)
+        }
+
+        left.setOnClickListener {
+            listener?.onDoubleTapStarted(it.x,it.y)
             val clickTime = System.currentTimeMillis()
             if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
                 lastClickTime = 0
                 listener?.onDoubleTapProgressUp(it.x,it.y)
+            }else{
+                Log.d("TAG", "left: ")
             }
             lastClickTime = clickTime
 
         }
 
         right.setOnClickListener {
-            Log.d("TAG", "right: ")
             listener?.onDoubleTapStarted(it.x*2,it.y)
-
             val clickTime = System.currentTimeMillis()
             if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
                 lastClickTime = 0
                 listener?.onDoubleTapProgressUp(it.x*2,it.y)
+            }else{
+                Log.d("TAG", "right: ")
             }
             lastClickTime = clickTime
         }
@@ -151,27 +197,32 @@ class MainActivityRcti : BaseVideoActivityRcti() {
         buildMediaSource(Uri.parse(DataAndUtils.videoList[currentVideoId]))
     }
 
-    private fun toggleFullscreen() {
-        if (isVideoFullscreen) {
-            setFullscreen(false)
-            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE;
-            if(supportActionBar != null){
-                supportActionBar?.show();
-            }
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-            isVideoFullscreen = false
-        } else {
-            setFullscreen(true)
-            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN
-                    and View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                    and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
-
-            if(supportActionBar != null){
-                supportActionBar?.hide();
-            }
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-            isVideoFullscreen = true
+    private fun toggleFullscreen() = if (isVideoFullscreen) {
+        setFullscreen(false)
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE;
+        if(supportActionBar != null){
+            supportActionBar?.show();
         }
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        frameLayout.layoutParams = portraitParams
+        isVideoFullscreen = false
+    } else {
+        setFullscreen(true)
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN
+                and View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+
+        if(supportActionBar != null){
+            supportActionBar?.hide();
+        }
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        val height: Int = displayMetrics.heightPixels
+        val width: Int = displayMetrics.widthPixels
+        portraitParams = frameLayout.layoutParams
+        frameLayout.layoutParams = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT,width)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        isVideoFullscreen = true
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -199,5 +250,97 @@ class MainActivityRcti : BaseVideoActivityRcti() {
             return
         }
         super.onBackPressed()
+    }
+
+    private class DoubleTapGestureListener(private val rootView: View) : GestureDetector.SimpleOnGestureListener() {
+
+        private val mHandler = Handler()
+        private val mRunnable = Runnable {
+            if (DEBUG) Log.d(TAG, "Runnable called")
+            isDoubleTapping = false
+            controls?.onDoubleTapFinished()
+        }
+
+        var controls: PlayerDoubleTapListener? = null
+        var isDoubleTapping = false
+        var doubleTapDelay: Long = 650
+
+        /**
+         * Resets the timeout to keep in double tap mode.
+         *
+         * Called once in [PlayerDoubleTapListener.onDoubleTapStarted]. Needs to be called
+         * from outside if the double tap is customized / overridden to detect ongoing taps
+         */
+        fun keepInDoubleTapMode() {
+            isDoubleTapping = true
+            mHandler.removeCallbacks(mRunnable)
+            mHandler.postDelayed(mRunnable, doubleTapDelay)
+        }
+
+        /**
+         * Cancels double tap mode instantly by calling [PlayerDoubleTapListener.onDoubleTapFinished]
+         */
+        fun cancelInDoubleTapMode() {
+            mHandler.removeCallbacks(mRunnable)
+            isDoubleTapping = false
+            controls?.onDoubleTapFinished()
+        }
+
+        override fun onDown(e: MotionEvent): Boolean {
+            // Used to override the other methods
+            if (isDoubleTapping) {
+                controls?.onDoubleTapProgressDown(e.x, e.y)
+                return true
+            }
+            return super.onDown(e)
+        }
+
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            if (isDoubleTapping) {
+                if (DEBUG) Log.d(TAG, "onSingleTapUp: isDoubleTapping = true")
+                controls?.onDoubleTapProgressUp(e.x, e.y)
+                return true
+            }
+            return super.onSingleTapUp(e)
+        }
+
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            // Ignore this event if double tapping is still active
+            // Return true needed because this method is also called if you tap e.g. three times
+            // in a row, therefore the controller would appear since the original behavior is
+            // to hide and show on single tap
+            if (isDoubleTapping) return true
+            if (DEBUG) Log.d(TAG, "onSingleTapConfirmed: isDoubleTap = false")
+            return rootView.performClick()
+        }
+
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            // First tap (ACTION_DOWN) of both taps
+            if (DEBUG) Log.d(TAG, "onDoubleTap")
+            if (!isDoubleTapping) {
+                isDoubleTapping = true
+                keepInDoubleTapMode()
+                controls?.onDoubleTapStarted(e.x, e.y)
+            }
+            return true
+        }
+
+        override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+            // Second tap (ACTION_UP) of both taps
+            if (e.actionMasked == MotionEvent.ACTION_UP && isDoubleTapping) {
+                if (DEBUG) Log.d(
+                    TAG,
+                    "onDoubleTapEvent, ACTION_UP"
+                )
+                controls?.onDoubleTapProgressUp(e.x, e.y)
+                return true
+            }
+            return super.onDoubleTapEvent(e)
+        }
+
+        companion object {
+            private const val TAG = ".DTGListener"
+            private var DEBUG = true
+        }
     }
 }

@@ -10,22 +10,22 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.vkay94.doubletapplayerviewexample.Mp4ExtractorFactory
 import com.github.vkay94.doubletapplayerviewexample.R
 import com.github.vkay94.dtpv.DoubleTapPlayerView
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.LoadControl
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
+import kotlinx.android.synthetic.main.activity_main_rcti.*
+import kotlinx.android.synthetic.main.activity_main_rcti.view.*
 
 
 @SuppressLint("Registered")
 open class BaseVideoActivityRcti : AppCompatActivity() {
 
     var videoPlayer: PlayerView? = null
-    var player: SimpleExoPlayer? = null
+    var player: ExoPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +39,7 @@ open class BaseVideoActivityRcti : AppCompatActivity() {
             DefaultBandwidthMeter.Builder(this@BaseVideoActivityRcti).build()
         )
         val videoSource = ProgressiveMediaSource.Factory(dataSourceFactory, Mp4ExtractorFactory())
-            .createMediaSource(mUri)
+            .createMediaSource(MediaItem.fromUri(mUri))
 
         player?.prepare(videoSource)
         player?.playWhenReady = true
@@ -56,10 +56,10 @@ open class BaseVideoActivityRcti : AppCompatActivity() {
                 )
                 .createDefaultLoadControl()
 
-            player = SimpleExoPlayer.Builder(this)
+            player = ExoPlayer.Builder(this)
+                .setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT)
                 .setLoadControl(loadControl)
                 .build()
-
             videoPlayer?.player = player
         }
     }
@@ -112,6 +112,11 @@ open class BaseVideoActivityRcti : AppCompatActivity() {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
             )
+            previewPlayerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            player?.videoScalingMode=
+                C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+
+
         } else {
             this.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         }

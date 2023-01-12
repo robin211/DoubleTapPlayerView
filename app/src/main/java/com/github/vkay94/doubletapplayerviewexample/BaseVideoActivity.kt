@@ -8,10 +8,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.github.vkay94.dtpv.DoubleTapPlayerView
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.LoadControl
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
@@ -36,7 +33,7 @@ open class BaseVideoActivity : AppCompatActivity() {
             DefaultBandwidthMeter.Builder(this@BaseVideoActivity).build()
         )
         val videoSource = ProgressiveMediaSource.Factory(dataSourceFactory, Mp4ExtractorFactory())
-            .createMediaSource(mUri)
+            .createMediaSource(MediaItem.fromUri(mUri))
 
         player?.prepare(videoSource)
         player?.playWhenReady = true

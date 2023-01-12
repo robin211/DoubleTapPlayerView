@@ -29,7 +29,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:animateLayoutChanges="true"
-                app:layout_constraintDimensionRatio="16:9"
+                app:layout_constraintDimensionRatio="4:3"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
@@ -52,36 +52,48 @@
                     app:yt_playerView="@id/previewPlayerView"
                     tools:visibility="visible" />
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="32dp"
+                    android:id="@+id/tapArea">
+                    <View
+                        android:id="@+id/left"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="2"
+                            tools:ignore="NestedWeights" />
+                        <View
+                            android:id="@+id/mid"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            />
+                    </LinearLayout>
+
+                    <View
+                        android:id="@+id/right"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"/>
+                </LinearLayout>
+
             </FrameLayout>
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/guideline2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_constraintGuide_percent="0.5"
-                android:orientation="vertical" />
-
-            <View
-                android:id="@+id/left"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:background="@color/colorAccent"
-                android:alpha="0.5"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="@+id/guideline2"/>
-
-            <View
-                android:id="@+id/right"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:background="@color/colorAccent"
-                android:alpha="0.3"
-                app:layout_constraintStart_toStartOf="@+id/guideline2"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
